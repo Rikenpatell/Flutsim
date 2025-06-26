@@ -341,7 +341,7 @@
       "name": "flutsim",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "2.17"
     }
   ],
   "generator": "pub",

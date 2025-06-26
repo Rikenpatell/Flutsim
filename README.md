@@ -22,7 +22,7 @@ A powerful Flutter CLI tool for enhanced development experience with auto-reload
 dart pub global activate flutsim
 
 # Or install from git
-dart pub global activate --source git https://github.com/yourusername/flutsim.git
+dart pub global activate --source git https://github.com/Rikenpatell/Flutsim.git
 ```
 
 ### Prerequisites
@@ -139,13 +139,11 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License 📄
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License- see the [LICENSE](LICENSE) file for details.
 
 ## Support 💬
 
-- 📧 Email: support@flutsim.dev
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/flutsim/issues)
-- 📖 Documentation: [GitHub Wiki](https://github.com/yourusername/flutsim/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/Rikenpatell/Flutsim.git)
 
 ## Changelog 📝
 

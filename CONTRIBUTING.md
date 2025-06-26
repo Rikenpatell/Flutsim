@@ -16,7 +16,7 @@ Thank you for your interest in contributing to FlutSim! This document provides g
 2. Clone your fork:
 
    ```bash
-   git clone https://github.com/yourusername/flutsim.git
+   git clone https://github.com/Rikenpatell/Flutsim.git
    cd flutsim
    ```
 

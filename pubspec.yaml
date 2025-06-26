@@ -1,6 +1,6 @@
 name: flutsim
 description: A powerful Flutter CLI tool for enhanced development experience with auto-reload, hot reload, and instant UI updates
-version: 1.0.2
+version: 1.0.3
 homepage: https://github.com/Rikenpatell/Flutsim.git
 repository: https://github.com/Rikenpatell/Flutsim.git
 #issue_tracker: https://github.com/Rikenpatell/Flutsim.git/issues

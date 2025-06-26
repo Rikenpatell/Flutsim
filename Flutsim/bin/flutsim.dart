@@ -173,7 +173,6 @@ void main(List<String> arguments) async {
       if (exitCode == 0) {
         print('✅ Project "$projectName" created successfully!');
         print('📁 Navigate to your project: cd $projectName');
-        print('🚀 Run your app: flutter run');
 
         // Add FlutSim-specific setup
         await _setupFlutsimProject(projectName);

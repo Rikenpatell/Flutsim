@@ -14,6 +14,7 @@ import 'browser_auto_reload.dart';
 import 'flutter_dev_proxy.dart';
 import 'instant_ui_server.dart';
 import 'instant_ui_updater.dart';
+import 'qr_generator.dart';
 
 /// Check if a port is available
 Future<bool> isPortAvailable(int port) async {
@@ -556,9 +557,8 @@ Future<void> generateAndDisplayQRCode(String url) async {
     print('\n📱 QR Code for easy mobile access:');
     print('┌─────────────────────────────────────┐');
 
-    // Create a proper QR code pattern
-    final qrString = _generateQRCode(url);
-    print(qrString);
+    // Generate QR code using the QRGenerator class with smaller size
+    QRGenerator.printQRCodeToTerminal(url, size: 2);
 
     print('└─────────────────────────────────────┘');
     print('📱 Scan this QR code with your mobile device to access the app');
@@ -566,88 +566,5 @@ Future<void> generateAndDisplayQRCode(String url) async {
   } catch (e) {
     print('⚠️  Could not generate QR code: $e');
     print('🔗 Please manually visit: $url');
-  }
-}
-
-/// Generate a simple but scannable QR code
-String _generateQRCode(String data) {
-  // Create a proper QR code pattern that's actually scannable
-  final qrSize = 25; // Slightly larger for better scanning
-  final url = data;
-
-  StringBuffer buffer = StringBuffer();
-
-  // Generate QR code with proper positioning patterns and data encoding
-  for (int i = 0; i < qrSize; i++) {
-    buffer.write('│ ');
-    for (int j = 0; j < qrSize; j++) {
-      bool isDark = false;
-
-      // Add positioning patterns (corners) - these are always present in QR codes
-      if ((i < 7 && j < 7) || // Top-left
-          (i < 7 && j >= qrSize - 7) || // Top-right
-          (i >= qrSize - 7 && j < 7)) {
-        // Bottom-left
-        isDark = _isPositioningPattern(i, j, qrSize);
-      } else {
-        // Generate data pattern based on URL using better encoding
-        isDark = _generateDataPattern(i, j, url, qrSize);
-      }
-
-      buffer.write(isDark ? '█' : ' ');
-    }
-    buffer.writeln(' │');
-  }
-
-  return buffer.toString();
-}
-
-/// Check if position is part of positioning pattern
-bool _isPositioningPattern(int i, int j, int size) {
-  // Positioning patterns are 7x7 squares with specific patterns
-  if (i < 7 && j < 7) {
-    // Top-left positioning pattern
-    return (i == 0 || i == 6 || j == 0 || j == 6) ||
-        (i >= 2 && i <= 4 && j >= 2 && j <= 4);
-  } else if (i < 7 && j >= size - 7) {
-    // Top-right positioning pattern
-    final j2 = j - (size - 7);
-    return (i == 0 || i == 6 || j2 == 0 || j2 == 6) ||
-        (i >= 2 && i <= 4 && j2 >= 2 && j2 <= 4);
-  } else if (i >= size - 7 && j < 7) {
-    // Bottom-left positioning pattern
-    final i2 = i - (size - 7);
-    return (i2 == 0 || i2 == 6 || j == 0 || j == 6) ||
-        (i2 >= 2 && i2 <= 4 && j >= 2 && j <= 4);
-  }
-  return false;
-}
-
-/// Generate data pattern based on URL with better encoding
-bool _generateDataPattern(int i, int j, String url, int size) {
-  // Skip positioning pattern areas
-  if ((i < 7 && j < 7) ||
-      (i < 7 && j >= size - 7) ||
-      (i >= size - 7 && j < 7)) {
-    return false;
-  }
-
-  // Create a more structured pattern based on URL
-  final urlBytes = url.codeUnits;
-  final position = i * size + j;
-  final urlIndex = position % urlBytes.length;
-  final charValue = urlBytes[urlIndex];
-
-  // Create a pattern that's more likely to be scannable
-  // Use a combination of position and character value
-  final pattern = (charValue + position + i + j) % 2;
-
-  // Add some structure to make it more QR-like
-  if (i % 2 == 0 && j % 2 == 0) {
-    return pattern == 0;
-  } else if (i % 2 == 1 && j % 2 == 1) {
-    return pattern == 1;
-  } else {
-    return pattern == 0;
   }
 }

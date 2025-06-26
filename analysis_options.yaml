@@ -1,0 +1,26 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - "test/**"
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+
+  errors:
+    # Treat missing required parameters as a warning (not a hint).
+    missing_required_param: warning
+    # Treat missing returns as a warning (not a hint).
+    missing_return: warning
+    # Allow having TODOs in the code.
+    todo: ignore
+
+linter:
+  rules:
+    # Allow print statements for CLI tools
+    avoid_print: false
+    # Avoid using `web` import in non-web libraries.
+    avoid_web_libraries_in_flutter: true
+    # Use `camelCase` for type names.
+    camel_case_types: true
+    # Use `camelCase` for extension names.
+    camel_case_extensions: true

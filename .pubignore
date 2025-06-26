@@ -1,0 +1,25 @@
+# Exclude test project from publishing
+test_app/
+
+# Exclude generated files
+.dart_tool/
+.packages
+.pub/
+build/
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.iml
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
+
+# Exclude logs
+*.log
+
+# Exclude temporary files
+*.tmp
+*.temp
+*.bak 

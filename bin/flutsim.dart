@@ -170,7 +170,7 @@ Features:
   🌐 Network access for cross-device testing
   🔧 Smart Flutter detection
 
-For more information, visit: https://github.com/yourusername/flutsim
+For more information, visit: https://github.com/Rikenpatell/Flutsim.git
 ''');
       exit(0);
     }

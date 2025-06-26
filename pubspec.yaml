@@ -40,3 +40,6 @@ platforms:
   windows:
   linux:
   macos:
+  android:
+  ios:
+  web:

@@ -1,0 +1,20 @@
+name: flutsim
+description: A Flutter CLI preview tool
+version: 1.0.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  args: ^2.4.2
+  shelf: ^1.4.0
+  shelf_static: ^1.1.2
+  qr: ^3.0.1
+  path: ^1.8.3
+  image: ^4.5.4
+  watcher: ^1.1.0
+  web_socket_channel: ^2.4.0
+  web: ^0.5.0
+
+executables:
+  flutsim: bin/flutsim.dart

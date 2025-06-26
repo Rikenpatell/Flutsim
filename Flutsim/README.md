@@ -102,8 +102,4 @@ To contribute to FlutSim:
 2. Install dependencies: `dart pub get`
 3. Run tests: `dart test`
 4. Make your changes
-5. Test your changes: `dart run bin/flutsim.dart create test_project`
-
-## License
-
-This project is open source and available under the MIT License.
+5. Test your changes: `dart run bin/flutsim.dart create <project name>`

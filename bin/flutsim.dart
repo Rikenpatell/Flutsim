@@ -55,15 +55,15 @@ void showFlutterInstallInstructions() {
 To install Flutter:
 
 1. Download Flutter SDK from: https://docs.flutter.dev/get-started/install/windows
-2. Extract it to a location like C:\\flutter
+2. Extract it to a location like C:\flutter
 3. Add Flutter to your PATH:
    - Open System Properties > Advanced > Environment Variables
-   - Add C:\\flutter\\bin to the PATH variable
+   - Add C:\flutter\bin to the PATH variable
 4. Restart your terminal
 5. Run: flutter doctor
 
 Alternative: You can also run this command to add Flutter to PATH temporarily:
-   set PATH=%PATH%;C:\\flutter\\bin
+   set PATH=%PATH%;C:\flutter\bin
 ''');
 }
 
@@ -104,16 +104,16 @@ This project has been configured with FlutSim for enhanced development experienc
 - ✅ QR code generation for easy access
 
 ## Usage:
-\`\`\`bash
+```bash
 # Run with FlutSim
 flutsim run
 
 # Or run normally
 flutter run
-\`\`\`
+```
 
 ## Configuration:
-Edit \`.flutsim/config.json\` to customize FlutSim behavior.
+Edit `.flutsim/config.json` to customize FlutSim behavior.
 ''';
 
     await readmeFile.writeAsString(readmeContent);

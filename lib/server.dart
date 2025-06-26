@@ -166,7 +166,7 @@ Future<void> runFlutsimPreview() async {
   );
 
   // Create a middleware to inject live reload script
-  final liveReloadHandler = (Request request) async {
+  Future<Response> liveReloadHandler(Request request) async {
     final response = await handler(request);
 
     // Only inject script for HTML files
@@ -230,7 +230,7 @@ Future<void> runFlutsimPreview() async {
     }
 
     return response;
-  };
+  }
 
   await shelf_io.serve(liveReloadHandler, InternetAddress.anyIPv4, port);
 

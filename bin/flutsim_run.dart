@@ -1,5 +1,5 @@
 import 'dart:io';
-import '../lib/server.dart';
+import 'package:flutsim/server.dart';
 
 /// Check if Flutter is installed and accessible
 Future<bool> isFlutterInstalled() async {

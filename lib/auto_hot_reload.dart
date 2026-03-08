@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:watcher/watcher.dart';
+import 'config.dart';
 
 /// Automatic hot reload system that works with Flutter's development server
 class AutoHotReload {
@@ -34,7 +35,7 @@ class AutoHotReload {
 
     // Debounce rapid changes
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+    _debounceTimer = Timer(Duration(milliseconds: FlutsimConfig.debounceDelay), () {
       _triggerHotReload(event.path);
     });
   }

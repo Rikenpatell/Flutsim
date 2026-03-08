@@ -4,17 +4,33 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_static/shelf_static.dart';
 import 'package:path/path.dart' as path;
 import 'package:watcher/watcher.dart';
-import 'websocket_server.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'config.dart';
-import 'hot_reload_server.dart';
-import 'hot_reload_manager.dart';
-import 'auto_reload_server.dart';
-import 'browser_auto_reload.dart';
 import 'flutter_dev_proxy.dart';
-import 'instant_ui_server.dart';
-import 'instant_ui_updater.dart';
+import 'unified_websocket_server.dart';
+import 'flutsim_client.dart';
 import 'qr_generator.dart';
+
+const String ansiReset = '\x1B[0m';
+const String ansiGreen = '\x1B[32m';
+const String ansiRed = '\x1B[31m';
+const String ansiBlue = '\x1B[34m';
+const String ansiYellow = '\x1B[33m';
+
+void openBrowser(String url) {
+  try {
+    if (Platform.isMacOS) {
+      Process.run('open', [url]);
+    } else if (Platform.isWindows) {
+      Process.run('start', [url], runInShell: true);
+    } else if (Platform.isLinux) {
+      Process.run('xdg-open', [url]);
+    }
+  } catch (e) {
+    print('$ansiRed⚠️ Failed to open browser: $e$ansiReset');
+  }
+}
 
 /// Check if a port is available
 Future<bool> isPortAvailable(int port) async {
@@ -84,33 +100,13 @@ String? getFlutterPath() {
 Future<void> runFlutsimPreview() async {
   final port = FlutsimConfig.port;
   final buildDir = Directory('build/web');
-  final liveReload = LiveReloadServer();
-  final hotReload = HotReloadServer();
-  final autoReload = AutoReloadServer();
-  final instantUI = InstantUIServer();
-
-  await liveReload.start();
-
-  // Start hot reload server if enabled
-  if (FlutsimConfig.enableInstantHotReload) {
-    await hotReload.start();
-  }
-
-  // Start auto reload server if enabled
-  if (FlutsimConfig.enableAutoReload) {
-    await autoReload.start();
-  }
-
-  // Start instant UI update server if enabled
-  if (FlutsimConfig.enableInstantUIUpdates) {
-    await instantUI.start();
-  }
+  final unifiedServer = UnifiedWebSocketServer();
+  await unifiedServer.start();
 
   // Check if we should use fast development mode
   if (FlutsimConfig.useFastMode) {
-    print('🚀 Starting Flutter in fast development mode...');
-    await _startFastDevelopmentMode(
-        port, liveReload, hotReload, autoReload, instantUI);
+    print('$ansiBlue🚀 Starting Flutter in fast development mode...$ansiReset');
+    await _startFastDevelopmentMode(port, unifiedServer);
     return;
   }
 
@@ -174,55 +170,8 @@ Future<void> runFlutsimPreview() async {
     if (request.url.path.endsWith('.html') || request.url.path.isEmpty) {
       final body = await response.readAsString();
 
-      // Inject live reload script before closing body tag
-      final liveReloadScript = '''
-<script>
-// Live Reload Client
-(function() {
-  const ws = new WebSocket('ws://' + window.location.hostname + ':${FlutsimConfig.liveReloadPort}');
-  
-  ws.onopen = function() {
-    console.log('🔌 Connected to live reload server');
-  };
-  
-  ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    if (data.type === 'reload') {
-      console.log('🔄 Live reload triggered');
-      window.location.reload();
-    }
-  };
-  
-  ws.onerror = function(error) {
-    console.log('❌ WebSocket error:', error);
-  };
-  
-  ws.onclose = function() {
-    console.log('🔌 Disconnected from live reload server');
-    // Try to reconnect after 2 seconds
-    setTimeout(function() {
-      window.location.reload();
-    }, 2000);
-  };
-})();
-</script>
-''';
-
-      // Inject hot reload script if enabled
-      String modifiedBody =
-          body.replaceFirst('</body>', '$liveReloadScript</body>');
-
-      if (FlutsimConfig.enableInstantHotReload) {
-        modifiedBody = HotReloadManager.injectHotReloadScript(modifiedBody);
-      }
-
-      if (FlutsimConfig.enableAutoReload) {
-        modifiedBody = BrowserAutoReload.injectAutoReloadScript(modifiedBody);
-      }
-
-      if (FlutsimConfig.enableInstantUIUpdates) {
-        modifiedBody = InstantUIUpdater.injectInstantUpdateScript(modifiedBody);
-      }
+      // Inject unified FlutSim client script
+      String modifiedBody = FlutSimClient.injectScript(body, unifiedServer.port);
 
       return Response.ok(
         modifiedBody,
@@ -235,9 +184,13 @@ Future<void> runFlutsimPreview() async {
 
   await shelf_io.serve(liveReloadHandler, InternetAddress.anyIPv4, port);
 
-  print('✅ Local server started at: $url');
-  print('\n📱 Open this URL on your device: $url');
-  print('🔄 Press Ctrl+C to stop the server');
+  print('$ansiGreen✅ Local server started at: $url$ansiReset');
+  print('\n$ansiBlue📱 Open this URL on your device: $url$ansiReset');
+  print('$ansiYellow🔄 Press Ctrl+C to stop the server$ansiReset');
+  
+  // Auto-open browser for standard preview mode
+  print('$ansiBlue🌐 Opening browser automatically...$ansiReset');
+  openBrowser(url);
 
   if (FlutsimConfig.enableInstantHotReload) {
     print('🔥 Instant hot reload enabled - changes appear immediately!');
@@ -259,7 +212,7 @@ Future<void> runFlutsimPreview() async {
   final flutterCommand = flutterPath ?? 'flutter';
 
   // Start Flutter in development mode with web-server and hot reload
-  print('🚀 Starting Flutter development server with hot reload...');
+  print('$ansiBlue🚀 Starting Flutter development server with hot reload...$ansiReset');
 
   // Start Flutter process with stdin/stdout communication
   final flutterProcess = await Process.start(
@@ -275,9 +228,81 @@ Future<void> runFlutsimPreview() async {
     mode: ProcessStartMode.normal,
   );
 
-  // Pipe stdout and stderr to this process
-  stdout.addStream(flutterProcess.stdout);
-  stderr.addStream(flutterProcess.stderr);
+  String? devToolsUrl;
+
+  // Pipe stdout and stderr to this process and intercept errors
+  flutterProcess.stdout.transform(utf8.decoder).listen((data) {
+    stdout.write(data);
+    
+    // Capture DevTools URL
+    if (data.contains('DevTools debugger')) {
+      final match = RegExp(r'http://127\.0\.0\.1:[0-9]+[^ \n\r]*').firstMatch(data);
+      if (match != null) {
+        devToolsUrl = match.group(0);
+      }
+    }
+    
+    // Check for compilation or generic errors to overlay in browser
+    if (data.contains('Error: ') || data.contains('Exception: ') || data.contains('Failed to compile')) {
+      unifiedServer.sendError(data);
+    } else if (data.contains('Reloaded ') || data.contains('Restarted ')) {
+      unifiedServer.clearError(); // Wipe the overlay on successful reload
+    }
+  });
+
+  flutterProcess.stderr.transform(utf8.decoder).listen((data) {
+    stderr.write(data);
+    if (data.contains('Error: ') || data.contains('Exception: ')) {
+      unifiedServer.sendError(data);
+    }
+  });
+
+  // Start Terminal UI (TUI) Listener
+  if (stdin.hasTerminal) {
+    stdin.echoMode = false;
+    stdin.lineMode = false;
+    
+    print('\n$ansiBlue🎮 Terminal UI active:$ansiReset');
+    print('  [r] Hot Reload  |  [R] Hot Restart');
+    print('  [d] DevTools    |  [c] Clear');
+    print('  [q] Quit        |  [h] Help / QR');
+
+    stdin.listen((List<int> codes) {
+      final key = utf8.decode(codes);
+      
+      switch (key) {
+        case 'r':
+          print('\n$ansiYellow🔥 Manual Hot Reload...$ansiReset');
+          flutterProcess.stdin.write('r\n');
+          unifiedServer.triggerHotReload();
+          break;
+        case 'R':
+          print('\n$ansiYellow💥 Manual Hot Restart...$ansiReset');
+          flutterProcess.stdin.write('R\n');
+          unifiedServer.triggerAutoReload();
+          break;
+        case 'd':
+          if (devToolsUrl != null) {
+            print('\n$ansiBlue🛠 Opening Dart DevTools...$ansiReset');
+            openBrowser(devToolsUrl!);
+          } else {
+            print('\n$ansiYellow⚠️ DevTools URL not yet available.$ansiReset');
+          }
+          break;
+        case 'c':
+          print('\x1B[2J\x1B[0;0H'); // Clear terminal
+          break;
+        case 'q':
+        case '\x03': // Ctrl+C
+          print('\n$ansiGreen👋 Exiting FlutSim...$ansiReset');
+          flutterProcess.kill();
+          exit(0);
+        case 'h':
+          generateAndDisplayQRCode(url);
+          break;
+      }
+    });
+  }
 
   // Start file watcher for automatic hot reload
   final watcher = DirectoryWatcher('lib');
@@ -304,17 +329,17 @@ Future<void> runFlutsimPreview() async {
       try {
         // Trigger instant hot reload if enabled
         if (FlutsimConfig.enableInstantHotReload) {
-          hotReload.triggerInstantHotReload();
+          unifiedServer.triggerHotReload();
         }
 
-        // Trigger auto reload if enabled
-        if (FlutsimConfig.enableAutoReload) {
-          autoReload.triggerAutoReload();
+        // Trigger auto reload if enabled and instant hot reload is disabled
+        if (FlutsimConfig.enableAutoReload && !FlutsimConfig.enableInstantHotReload) {
+          unifiedServer.triggerAutoReload();
         }
 
         // Trigger instant UI updates if enabled
         if (FlutsimConfig.enableInstantUIUpdates) {
-          instantUI.sendInstantUIUpdate([
+          unifiedServer.sendInstantUIUpdate([
             {
               'action': 'update_text',
               'selector': 'body',
@@ -341,10 +366,7 @@ Future<void> runFlutsimPreview() async {
 /// Start Flutter in fast development mode using flutter run
 Future<void> _startFastDevelopmentMode(
     int port,
-    LiveReloadServer liveReload,
-    HotReloadServer hotReload,
-    AutoReloadServer autoReload,
-    InstantUIServer instantUI) async {
+    UnifiedWebSocketServer unifiedServer) async {
   final ip = await getLocalIp();
 
   // Find an available port for Flutter development server
@@ -355,23 +377,27 @@ Future<void> _startFastDevelopmentMode(
   final proxy = FlutterDevProxy(
     proxyPort: proxyPort,
     flutterPort: flutterPort,
+    unifiedPort: unifiedServer.port,
   );
 
   await proxy.start();
 
   final url = 'http://$ip:$proxyPort';
 
-  print('🔍 Checking port availability...');
-  print('✅ Using port $flutterPort for Flutter development server');
-  print('✅ Using port $proxyPort for proxy server');
+  print('$ansiBlue🔍 Checking port availability...$ansiReset');
+  print('$ansiGreen✅ Using port $flutterPort for Flutter development server$ansiReset');
+  print('$ansiGreen✅ Using port $proxyPort for proxy server$ansiReset');
 
   // Show all available interfaces for debugging
   await _showAvailableInterfaces();
 
-  print('✅ Fast development server will be available at: $url');
-  print('\n📱 Open this URL on your device: $url');
-  print('🔄 Press Ctrl+C to stop the server');
-  print('🔥 Hot reload enabled - changes will appear instantly!');
+  print('$ansiGreen✅ Fast development server will be available at: $url$ansiReset');
+  print('\n$ansiBlue📱 Open this URL on your device: $url$ansiReset');
+  print('$ansiYellow🔄 Press Ctrl+C to stop the server$ansiReset');
+  
+  // Auto-open browser for fast preview mode
+  print('$ansiBlue🌐 Opening browser automatically...$ansiReset');
+  openBrowser(url);
 
   if (FlutsimConfig.enableInstantHotReload) {
     print('⚡ Instant hot reload enabled - no page refresh needed!');
@@ -393,7 +419,7 @@ Future<void> _startFastDevelopmentMode(
   final flutterCommand = flutterPath ?? 'flutter';
 
   // Start Flutter in development mode with web-server and hot reload
-  print('🚀 Starting Flutter development server with hot reload...');
+  print('$ansiBlue🚀 Starting Flutter development server with hot reload...$ansiReset');
 
   // Start Flutter process with stdin/stdout communication
   final flutterProcess = await Process.start(
@@ -409,9 +435,81 @@ Future<void> _startFastDevelopmentMode(
     mode: ProcessStartMode.normal,
   );
 
-  // Pipe stdout and stderr to this process
-  stdout.addStream(flutterProcess.stdout);
-  stderr.addStream(flutterProcess.stderr);
+  String? devToolsUrl;
+
+  // Pipe stdout and stderr to this process and intercept errors
+  flutterProcess.stdout.transform(utf8.decoder).listen((data) {
+    stdout.write(data);
+    
+    // Capture DevTools URL
+    if (data.contains('DevTools debugger')) {
+      final match = RegExp(r'http://127\.0\.0\.1:[0-9]+[^ \n\r]*').firstMatch(data);
+      if (match != null) {
+        devToolsUrl = match.group(0);
+      }
+    }
+    
+    // Check for compilation or generic errors to overlay in browser
+    if (data.contains('Error: ') || data.contains('Exception: ') || data.contains('Failed to compile')) {
+      unifiedServer.sendError(data);
+    } else if (data.contains('Reloaded ') || data.contains('Restarted ')) {
+      unifiedServer.clearError(); // Wipe the overlay on successful reload
+    }
+  });
+
+  flutterProcess.stderr.transform(utf8.decoder).listen((data) {
+    stderr.write(data);
+    if (data.contains('Error: ') || data.contains('Exception: ')) {
+      unifiedServer.sendError(data);
+    }
+  });
+
+  // Start Terminal UI (TUI) Listener
+  if (stdin.hasTerminal) {
+    stdin.echoMode = false;
+    stdin.lineMode = false;
+    
+    print('\n$ansiBlue🎮 Terminal UI active:$ansiReset');
+    print('  [r] Hot Reload  |  [R] Hot Restart');
+    print('  [d] DevTools    |  [c] Clear');
+    print('  [q] Quit        |  [h] Help / QR');
+
+    stdin.listen((List<int> codes) {
+      final key = utf8.decode(codes);
+      
+      switch (key) {
+        case 'r':
+          print('\n$ansiYellow🔥 Manual Hot Reload...$ansiReset');
+          flutterProcess.stdin.write('r\n');
+          unifiedServer.triggerHotReload();
+          break;
+        case 'R':
+          print('\n$ansiYellow💥 Manual Hot Restart...$ansiReset');
+          flutterProcess.stdin.write('R\n');
+          unifiedServer.triggerAutoReload();
+          break;
+        case 'd':
+          if (devToolsUrl != null) {
+            print('\n$ansiBlue🛠 Opening Dart DevTools...$ansiReset');
+            openBrowser(devToolsUrl!);
+          } else {
+            print('\n$ansiYellow⚠️ DevTools URL not yet available.$ansiReset');
+          }
+          break;
+        case 'c':
+          print('\x1B[2J\x1B[0;0H'); // Clear terminal
+          break;
+        case 'q':
+        case '\x03': // Ctrl+C
+          print('\n$ansiGreen👋 Exiting FlutSim...$ansiReset');
+          flutterProcess.kill();
+          exit(0);
+        case 'h':
+          generateAndDisplayQRCode(url);
+          break;
+      }
+    });
+  }
 
   // Start file watcher for automatic hot reload
   final watcher = DirectoryWatcher('lib');
@@ -438,17 +536,17 @@ Future<void> _startFastDevelopmentMode(
       try {
         // Trigger instant hot reload if enabled
         if (FlutsimConfig.enableInstantHotReload) {
-          hotReload.triggerInstantHotReload();
+          unifiedServer.triggerHotReload();
         }
 
-        // Trigger auto reload if enabled
-        if (FlutsimConfig.enableAutoReload) {
-          autoReload.triggerAutoReload();
+        // Trigger auto reload if enabled and instant hot reload is disabled
+        if (FlutsimConfig.enableAutoReload && !FlutsimConfig.enableInstantHotReload) {
+          unifiedServer.triggerAutoReload();
         }
 
         // Trigger instant UI updates if enabled
         if (FlutsimConfig.enableInstantUIUpdates) {
-          instantUI.sendInstantUIUpdate([
+          unifiedServer.sendInstantUIUpdate([
             {
               'action': 'update_text',
               'selector': 'body',

@@ -6,7 +6,7 @@ class FlutsimConfig {
 
   /// Debounce delay for file changes (milliseconds)
   /// Increase this if you have many rapid file changes
-  static const int debounceDelay = 500;
+  static const int debounceDelay = 50;
 
   /// Use HTML renderer for faster builds (only applies to build mode)
   static const bool useHtmlRenderer = true;
@@ -23,17 +23,8 @@ class FlutsimConfig {
   /// Flutter development server port (for fast mode) - changed to avoid conflicts
   static const int flutterDevPort = 8083;
 
-  /// Live reload server port
-  static const int liveReloadPort = 8080;
-
-  /// Hot reload server port for instant updates
-  static const int hotReloadPort = 8082;
-
-  /// Auto reload server port for browser refresh
-  static const int autoReloadPort = 8084;
-
-  /// Instant UI update server port for DOM manipulation
-  static const int instantUIPort = 8085;
+  /// Unified WebSocket Server (Handles Live, Hot, Auto, Instant, and Errors)
+  static const int unifiedWebSocketPort = 8086;
 
   /// Enable instant hot reload (no page refresh)
   static const bool enableInstantHotReload = true;

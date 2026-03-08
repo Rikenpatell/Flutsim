@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'config.dart';
-import 'browser_auto_reload.dart';
-import 'instant_ui_updater.dart';
+import 'flutsim_client.dart';
 
 /// Proxy server that sits in front of Flutter development server
 /// to inject auto reload scripts
@@ -10,10 +8,12 @@ class FlutterDevProxy {
   HttpServer? _server;
   final int proxyPort;
   final int flutterPort;
+  final int unifiedPort;
 
   FlutterDevProxy({
     required this.proxyPort,
     required this.flutterPort,
+    required this.unifiedPort,
   });
 
   Future<void> start() async {
@@ -78,16 +78,8 @@ class FlutterDevProxy {
         );
         final body = utf8.decode(bodyBytes);
 
-        // Inject auto reload script if enabled
-        String modifiedBody = body;
-        if (FlutsimConfig.enableAutoReload) {
-          modifiedBody = BrowserAutoReload.injectAutoReloadScript(modifiedBody);
-        }
-
-        if (FlutsimConfig.enableInstantUIUpdates) {
-          modifiedBody =
-              InstantUIUpdater.injectInstantUpdateScript(modifiedBody);
-        }
+        // Inject unified client script
+        String modifiedBody = FlutSimClient.injectScript(body, unifiedPort);
 
         // Send modified response with proper UTF-8 encoding
         final modifiedBytes = utf8.encode(modifiedBody);

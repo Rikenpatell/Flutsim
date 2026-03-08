@@ -149,12 +149,9 @@ Future<void> runFlutsimPreview() async {
     print('✅ Web build already exists.');
   }
 
-  // Step 2: Get IP address and show available interfaces
+  // Step 2: Get IP address
   final ip = await getLocalIp();
   final url = 'http://$ip:$port';
-
-  // Show all available interfaces for debugging
-  await _showAvailableInterfaces();
 
   // Step 3: Serve Web Folder with live reload injection
   final handler = createStaticHandler(
@@ -184,25 +181,10 @@ Future<void> runFlutsimPreview() async {
 
   await shelf_io.serve(liveReloadHandler, InternetAddress.anyIPv4, port);
 
-  print('$ansiGreen✅ Local server started at: $url$ansiReset');
-  print('\n$ansiBlue📱 Open this URL on your device: $url$ansiReset');
-  print('$ansiYellow🔄 Press Ctrl+C to stop the server$ansiReset');
+  print('\n$ansiGreen🚀 Flutter Web Server: $url$ansiReset\n');
   
   // Auto-open browser for standard preview mode
-  print('$ansiBlue🌐 Opening browser automatically...$ansiReset');
   openBrowser(url);
-
-  if (FlutsimConfig.enableInstantHotReload) {
-    print('🔥 Instant hot reload enabled - changes appear immediately!');
-  }
-
-  if (FlutsimConfig.enableAutoReload) {
-    print('🔄 Auto reload enabled - browser will refresh automatically!');
-  }
-
-  if (FlutsimConfig.enableInstantUIUpdates) {
-    print('⚡ Instant UI updates enabled - DOM changes without reload!');
-  }
 
   // Generate and display QR code
   await generateAndDisplayQRCode(url);
@@ -210,11 +192,6 @@ Future<void> runFlutsimPreview() async {
   // Get the Flutter path
   final flutterPath = getFlutterPath();
   final flutterCommand = flutterPath ?? 'flutter';
-
-  // Start Flutter in development mode with web-server and hot reload
-  print('$ansiBlue🚀 Starting Flutter development server with hot reload...$ansiReset');
-
-  // Start Flutter process with stdin/stdout communication
   final flutterProcess = await Process.start(
     flutterCommand,
     [
@@ -351,6 +328,9 @@ Future<void> runFlutsimPreview() async {
         // Send 'r' to flutter process stdin
         flutterProcess.stdin.write('r\n');
         print('✅ Hot reload triggered automatically!');
+        
+        // Cooldown to ensure flutter finishes hot reloading before allowing another
+        await Future.delayed(const Duration(milliseconds: 1500));
       } catch (e) {
         print('❌ Failed to trigger hot reload: $e');
       } finally {
@@ -384,35 +364,11 @@ Future<void> _startFastDevelopmentMode(
 
   final url = 'http://$ip:$proxyPort';
 
-  print('$ansiBlue🔍 Checking port availability...$ansiReset');
-  print('$ansiGreen✅ Using port $flutterPort for Flutter development server$ansiReset');
-  print('$ansiGreen✅ Using port $proxyPort for proxy server$ansiReset');
+  print('\n$ansiGreen🚀 Flutter Development Server: http://$ip:$flutterPort$ansiReset');
+  print('$ansiBlue🔄 FlutSim Proxy Server (with Hot Reload): $url$ansiReset\n');
 
-  // Show all available interfaces for debugging
-  await _showAvailableInterfaces();
-
-  print('$ansiGreen✅ Fast development server will be available at: $url$ansiReset');
-  print('\n$ansiBlue📱 Open this URL on your device: $url$ansiReset');
-  print('$ansiYellow🔄 Press Ctrl+C to stop the server$ansiReset');
-  
-  // Auto-open browser for fast preview mode
-  print('$ansiBlue🌐 Opening browser automatically...$ansiReset');
-  openBrowser(url);
-
-  if (FlutsimConfig.enableInstantHotReload) {
-    print('⚡ Instant hot reload enabled - no page refresh needed!');
-  }
-
-  if (FlutsimConfig.enableAutoReload) {
-    print('🔄 Auto reload enabled - browser will refresh automatically!');
-  }
-
-  if (FlutsimConfig.enableInstantUIUpdates) {
-    print('⚡ Instant UI updates enabled - DOM changes without reload!');
-  }
-
-  // Generate and display QR code
-  await generateAndDisplayQRCode(url);
+  // Generate and display QR code (using Flutter Dev Server URL as requested)
+  await generateAndDisplayQRCode('http://$ip:$flutterPort');
 
   // Get the Flutter path
   final flutterPath = getFlutterPath();
@@ -437,9 +393,18 @@ Future<void> _startFastDevelopmentMode(
 
   String? devToolsUrl;
 
+  bool hasOpenedBrowser = false;
+
   // Pipe stdout and stderr to this process and intercept errors
   flutterProcess.stdout.transform(utf8.decoder).listen((data) {
     stdout.write(data);
+    
+    // Open browser when flutter is ready
+    if (!hasOpenedBrowser && (data.contains('is being served at') || data.contains('To hot restart'))) {
+      print('\n$ansiBlue🌐 Flutter is ready! Opening browser automatically...$ansiReset');
+      openBrowser(url);
+      hasOpenedBrowser = true;
+    }
     
     // Capture DevTools URL
     if (data.contains('DevTools debugger')) {
@@ -558,6 +523,9 @@ Future<void> _startFastDevelopmentMode(
         // Send 'r' to flutter process stdin
         flutterProcess.stdin.write('r\n');
         print('✅ Hot reload triggered automatically!');
+        
+        // Cooldown to ensure flutter finishes hot reloading before allowing another
+        await Future.delayed(const Duration(milliseconds: 1500));
       } catch (e) {
         print('❌ Failed to trigger hot reload: $e');
       } finally {
@@ -652,14 +620,8 @@ Future<String> getLocalIp() async {
 /// Generate and display QR code for the local server URL
 Future<void> generateAndDisplayQRCode(String url) async {
   try {
-    print('\n📱 QR Code for easy mobile access:');
-    print('┌─────────────────────────────────────┐');
-
     // Generate QR code using the QRGenerator class with smaller size
     QRGenerator.printQRCodeToTerminal(url, size: 2);
-
-    print('└─────────────────────────────────────┘');
-    print('📱 Scan this QR code with your mobile device to access the app');
     print('🔗 Or manually visit: $url');
   } catch (e) {
     print('⚠️  Could not generate QR code: $e');

@@ -19,8 +19,6 @@ class FlutterDevProxy {
   Future<void> start() async {
     try {
       _server = await HttpServer.bind(InternetAddress.anyIPv4, proxyPort);
-      print('🔄 Flutter dev proxy started on port $proxyPort');
-      print('🔄 Proxying to Flutter dev server on port $flutterPort');
 
       _server!.listen((HttpRequest request) async {
         await _handleRequest(request);

@@ -6,7 +6,7 @@ class FlutsimConfig {
 
   /// Debounce delay for file changes (milliseconds)
   /// Increase this if you have many rapid file changes
-  static const int debounceDelay = 50;
+  static const int debounceDelay = 250;
 
   /// Use HTML renderer for faster builds (only applies to build mode)
   static const bool useHtmlRenderer = true;

@@ -43,8 +43,6 @@ String? getFlutterPath() {
 
 /// Entrypoint for `flutsim run` command.
 Future<void> runFlutsim() async {
-  print('🚀 Starting FlutSim...');
-
   // Check if Flutter is installed
   if (!await isFlutterInstalled()) {
     print('❌ Flutter is not installed or not found in PATH.');
@@ -89,9 +87,6 @@ Future<void> runFlutsim() async {
     print('💡 Make sure pubspec.yaml contains Flutter dependencies.');
     exit(1);
   }
-
-  print('✅ Flutter project detected!');
-  print('🚀 Starting web preview...');
 
   try {
     await runFlutsimPreview();
